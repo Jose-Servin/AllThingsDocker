@@ -149,3 +149,58 @@ EOFError: EOF when reading a line
 We see this error because even though we are attached, we cannot enter/interact with the container and provide the necessary inputs it needs. So instead, we need to use the `-it` flag.
 
 If we want to restart a container in attached mode and listen to the docker terminal we use `docker start -a -i {container-name}`.
+
+## Deleting Images & Containers
+
+### Deleting Containers
+
+1. `docker rm {container-name} {container-name}...`
+2. `docker container prune` will remove all stopped containers at once.
+
+### Deleting Images
+
+Images can only be removed when the container they are used for is removed. A stopped container that uses the node image is technically still dependent on node and can start back up at any time so the node image cannot be removed.
+
+1. `docker images` will list all images we have.
+2. `docker rmi {image-id}` will remove the image and any layers associated with that image.
+3. `docker image prune` will remove all un-used images.
+
+### Removing Stopped Containers Automatically
+
+- Achieved via the `--rm` flag.
+
+So now, if we go back to our NodeApp project, we can use the `docker run -p 3000:80 -d -rm {image-id}`.
+
+- `-p` opens the ports.
+- `-d` detached head.
+- `--rm` remove container when it exits.
+
+And once we stop the container `docker stop {container-name}` we will no longer see this container under `docker ps -a`.
+
+Automatically stopping a container makes sense when we use servers, because we need to stop and rebuild the container to capture source code changes so this helps keep our docker container list un-cluttered.
+
+### Inspecting Images
+
+1. `docker image inspect {image-id}`
+
+## Copying Files Into and From a Container
+
+- `docker cp` allows us to copy into or out of a container.
+
+Scenario: we have a running container for our NodeApp, in detached state. We added `../NodeApp/dummy/secret.txt` and would like to copy this into our running container.
+
+```terminal
+docker cp dummy/.jovial_mayer:copyTest
+Successfully copied 2.56kB to jovial_mayer:/copyTest
+```
+
+To check if this was copied to our container, we delete `secret.txt` locally and copy from the container to our local system now.
+
+```terminal
+docker cp jovial_mayer:/copyTest/secret.txt dummy
+Successfully copied 2.56kB to /Users/joseservin/AllThingsDocker/NodeApp/dummy
+```
+
+### When/Why Copy?
+
+- A good example is copying Docker log files into our local system for further processing.
