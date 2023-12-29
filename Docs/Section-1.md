@@ -1,4 +1,4 @@
-# Docker and Kubernetes Practical Guide
+# Docker Images & Containers: The Core Building Blocks
 
 ## Images & Containers
 
@@ -245,3 +245,86 @@ docker run -p 3000:80 -d --rm --name GoalsApp goals:latest
 
 docker run -p 3000:80 -d --rm --name {Container-Name} {Image-Tag}
 ```
+
+## Sharing Images - Overview
+
+- Everyone who has an image, can create containers based on the image.
+
+1. Share a Docker file.
+
+- Simply run `docker build .`
+- The source code is needed.
+
+2. Share a built image.
+
+- Download the image and run a container based on it.
+
+- No build step required - everything is included in the image.
+
+### Sharing via Docker Hub or Private Registry
+
+#### Share: `docker push {image-name}`
+
+```terminal
+docker push joseservin/node-app-demo
+
+$ Using default tag: latest
+$ The push refers to repository [docker.io/joseservin/node-app-demo]
+$ An image does not exist locally with the tag: joseservin/node-app-demo
+```
+
+- We need to name our image `joseservin/node-app-demo` currently it's `goals:latest`.
+
+```terminal
+docker images
+
+REPOSITORY            TAG       IMAGE ID       CREATED        SIZE
+goals                 latest    d71ee755cb0a   5 hours ago    1.11GB
+```
+
+Two options:
+
+1. re-build the image using the correct name.
+
+- `docker build -t joseservin/node-app-demo .`
+
+2. Rename the image.
+
+- `docker tag goals:latest joseservin/node-app-demo`
+
+This action will create a clone of the original image with the new name.
+
+Next, we need to `docker login` and `docker push`.
+
+```terminal
+docker push joseservin/node-app-demo
+
+Using default tag: latest
+The push refers to repository [docker.io/joseservin/node-app-demo]
+47014747fce5: Pushed
+2d1326fa79b1: Pushed
+68de4b30b9df: Pushed
+16a887c84e4a: Pushed
+a198729ad0b3: Mounted from library/node
+2bf51e018fe1: Mounted from library/node
+453f42978239: Mounted from library/node
+f300d546989d: Mounted from library/node
+ac7146fb6cf5: Mounted from library/python
+209de9f22f2f: Mounted from library/python
+777ac9f3cbb2: Mounted from library/python
+ae134c61b154: Mounted from library/python
+latest: digest: sha256:XXXXXX size: 2836
+```
+
+#### Usage: `docker pull {image-name}`
+
+We first delete all containers and images locally and run `docker pull joseservin/node-app-demo` to see how we can now pull the image we just uploaded to Docker Hub.
+
+```terminal
+docker images -a
+
+REPOSITORY                 TAG       IMAGE ID       CREATED       SIZE
+joseservin/node-app-demo   latest    d71ee755cb0a   5 hours ago   1.11GB
+```
+
+We need to remember to `docker pull` in order to get the latest version of an image! The local version of a pulled image is not automatically updates/keeps up with Docker Hub updates. Similar to Git.
