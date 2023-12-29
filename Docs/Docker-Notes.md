@@ -204,3 +204,44 @@ Successfully copied 2.56kB to /Users/joseservin/AllThingsDocker/NodeApp/dummy
 ### When/Why Copy?
 
 - A good example is copying Docker log files into our local system for further processing.
+
+## Naming & Tagging Containers and Images
+
+### Naming Containers
+
+`docker run -p 3000:80 -d --rm --name GoalsApp {image-id}`
+
+Now, if we `docker ps` we will see our container running with the custom name we assigned. This can speed up starting/stopping and keeping track of our containers.
+
+### Naming Images
+
+Images are names using tags. Tags are made up of two parts `name:tag`, where `name` is sometimes also referred to as `repository`.
+
+- `name` defines a group of, possible more specialized images. (ex. Node)
+
+- `tag` defines a specialized image within a group of images. (ex. 14)
+
+For example, if we want to use Node.V12, we would use `FROM node:12` in our Dockerfile.
+
+```terminal
+docker build -t goals:latest .
+```
+
+```terminal
+docker images -a
+REPOSITORY            TAG       IMAGE ID       CREATED          SIZE
+goals                 latest    d71ee755cb0a   10 seconds ago   1.11GB
+<none>                <none>    06f5d5b1832a   15 hours ago     1.11GB
+node                  latest    b678102cb2bf   8 days ago       1.1GB
+extending_airflow     latest    5f7e0ddf2e5f   6 months ago     1.17GB
+quay.io/minio/minio   latest    0e038de1f7d5   6 months ago     263MB
+postgres              13        6022d2772719   6 months ago     374MB
+```
+
+Now we can run a container based off this named image using
+
+```terminal
+docker run -p 3000:80 -d --rm --name GoalsApp goals:latest
+
+docker run -p 3000:80 -d --rm --name {Container-Name} {Image-Tag}
+```
