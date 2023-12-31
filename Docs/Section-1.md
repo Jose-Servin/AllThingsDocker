@@ -248,18 +248,18 @@ docker run -p 3000:80 -d --rm --name {Container-Name} {Image-Tag}
 
 ## Sharing Images - Overview
 
-- Everyone who has an image, can create containers based on the image.
+Everyone who has an image, can create containers based on the image.
 
 1. Share a Docker file.
 
-- Simply run `docker build .`
-- The source code is needed.
+   - Simply run `docker build .`
+   - The source code is needed.
 
 2. Share a built image.
 
-- Download the image and run a container based on it.
+   - Download the image and run a container based on it.
 
-- No build step required - everything is included in the image.
+   - No build step required - everything is included in the image.
 
 ### Sharing via Docker Hub or Private Registry
 
@@ -286,11 +286,11 @@ Two options:
 
 1. re-build the image using the correct name.
 
-- `docker build -t joseservin/node-app-demo .`
+   - `docker build -t joseservin/node-app-demo .`
 
 2. Rename the image.
 
-- `docker tag goals:latest joseservin/node-app-demo`
+   - `docker tag goals:latest joseservin/node-app-demo`
 
 This action will create a clone of the original image with the new name.
 
