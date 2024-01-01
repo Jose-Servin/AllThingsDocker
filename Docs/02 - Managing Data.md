@@ -69,7 +69,7 @@ However, with this new container created without the `--rm` flag, if we submit f
 
 2. Named Volumes
 
-   1. Create a new image with the `volumes` tag
+   1. Build a new image with the `volumes` tag
 
       ```terminal
       docker build -t feedback-node:volumes  .
@@ -90,3 +90,50 @@ However, with this new container created without the `--rm` flag, if we submit f
 In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
 
 #### Bind Mounts managed by the user
+
+- The main difference between Volumes and Bind Mounts is that for Bind Mounts, we the developer, define the folder/path on our host machine.
+
+- In terms of our NodeApp, we can place our source code in a Bind Mount and make our Container aware of this. That way, any source code changes can occur in "real-time" and not as a snap shot that happens during the build process.
+
+- Great for persistent, editable data.
+
+- Remember that Bind Mounts are for Containers not Images.
+
+- Bind mounts Mac OS shortcut: `-v $(pwd):/app`
+
+- Leverage Anonymous Volumes to solve Binding Mount conflicts.
+
+- `docker logs {container-name}`
+
+```terminal
+docker logs feedback-app
+
+node:internal/modules/cjs/loader:1146
+  throw err;
+  ^
+
+Error: Cannot find module 'express'
+Require stack:
+- /app/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1143:15)
+    at Module._load (node:internal/modules/cjs/loader:984:27)
+    at Module.require (node:internal/modules/cjs/loader:1234:19)
+    at require (node:internal/modules/helpers:176:18)
+    at Object.<anonymous> (/app/server.js:5:17)
+    at Module._compile (node:internal/modules/cjs/loader:1375:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1434:10)
+    at Module.load (node:internal/modules/cjs/loader:1206:32)
+    at Module._load (node:internal/modules/cjs/loader:1022:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:142:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/server.js' ]
+}
+
+Node.js v21.5.0
+```
+
+```terminal
+docker run -d -p 3000:80 --rm --name feedback-app -v feedback:/app/feedback -v "/Users/joseservin/AllThingsDocker/DataVolumes:/app" -v /app/node_modules feedback-node:volumes
+```
+
+Now if we apply a change to our source code, we see the change applied immediately.
