@@ -40,9 +40,7 @@ Now, if we create a new container without the `--rm` flag
 docker run -p 3000:80 -d --name feedback-app feedback-node
 ```
 
-We will see that the `feedback/git.txt` page we submitted earlier does not exist in our Container's file system. This is because it's a totally new container.
-
-However, with this new container created without the `--rm` flag, if we submit feedback and stop/restart the container we will see the feedback still exists.
+We will see that the `feedback/git.txt` page we submitted earlier does not exist in our Container's file system. This is because it's a totally new container. However, with this new container created without the `--rm` flag, if we submit feedback and stop/restart the container we will see the feedback still exists. The main problem still remains the same, if we delete a container we loose the data submitted.
 
 ## Introducing Volumes
 
@@ -66,10 +64,14 @@ However, with this new container created without the `--rm` flag, if we submit f
    ```
 
    - remove using `docker volume prune`.
+   - here we are specifying the different paths inside of our container we want to persist.
+   - We chose `/app/feedback` because this is where our permanent feedback files are stored.
+   - And it's `/app` because that's the `WORKDIR` we defined; this is where our source code was copied into as specified in our Dockerfile.
+   - Anonymous volumes are created and deleted with Containers
 
 2. Named Volumes
 
-   1. Build a new image with the `volumes` tag
+   1. Build a new image with the `volumes` tag; not required. We did this to differentiate between images.
 
       ```terminal
       docker build -t feedback-node:volumes  .
@@ -78,7 +80,16 @@ However, with this new container created without the `--rm` flag, if we submit f
    2. Specify the volume during the docker run
 
       ```terminal
-      docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback feedback-node:volumes
+      docker run
+      -p 3000:80 (port mapping)
+
+      -d --rm (detached and remove container when stopped)
+
+      --name feedback-app (name the container)
+
+      -v feedback:/app/feedback (create a named volume called 'feedback' that maps to '/app/feedback')
+
+      feedback-node:volumes (use this image)
       ```
 
    3. Apply changes to your app/submit data you want to save.
@@ -87,7 +98,9 @@ However, with this new container created without the `--rm` flag, if we submit f
    5. View volumes using `docker volume ls`
    6. Run `docker run` again to see the data persisted even after the container was stopped/removed.
 
-In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
+   In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
+
+3.
 
 #### Bind Mounts managed by the user
 
