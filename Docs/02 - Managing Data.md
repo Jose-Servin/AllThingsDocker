@@ -44,7 +44,7 @@ We will see that the `feedback/git.txt` page we submitted earlier does not exist
 
 ## Introducing Volumes
 
-- Volumes are folders on your host machine hard driver which are mounted ("made available", mapped) into Containers.
+- Volumes are folders on your host machine hard driver which are mounted ("made available", mapped) into Containers. They are managed by Docker.
 
 - (host) `/some-path` <---> `/app/user-data` (Container)
 
@@ -52,62 +52,117 @@ We will see that the `feedback/git.txt` page we submitted earlier does not exist
 
 - This means, Containers can read and write data to Volumes.
 
-### Two Types of External Data Storages
+### Anonymous Volumes
 
-#### Volumes: Managed by Docker
+```Dockerfile
+# Dockerfile
+VOLUMES ["/app/feedback"]
+```
 
-1. Anonymous Volumes
+- remove using `docker volume prune`.
+- here we are specifying the different paths inside of our container we want to persist.
+- We chose `/app/feedback` because this is where our permanent feedback files are stored.
+- And it's `/app` because that's the `WORKDIR` we defined; this is where our source code was copied into as specified in our Dockerfile.
+- Anonymous volumes are created and deleted with Containers
+- Leveraged to solve conflicts that occur with volume/bind mount declaration.
+- A good way to declare what data is managed inside of the Container vs what becomes present on the host file system.
 
-   ```Dockerfile
-   # Dockerfile
-   VOLUMES ["/app/feedback"]
-   ```
-
-   - remove using `docker volume prune`.
-   - here we are specifying the different paths inside of our container we want to persist.
-   - We chose `/app/feedback` because this is where our permanent feedback files are stored.
-   - And it's `/app` because that's the `WORKDIR` we defined; this is where our source code was copied into as specified in our Dockerfile.
-   - Anonymous volumes are created and deleted with Containers
-   - Leveraged to solve conflicts that occur with volume/bind mount declaration.
-   - A good way to declare what data is managed inside of the Container vs what becomes present on the host file system.
-
-2. Named Volumes
+### Named Volumes
 
 - NOT tied to a specific container.
 - Used to shared data between Containers.
 
-  1. Build a new image with the `volumes` tag; not required. We did this to differentiate between images.
+1. Build a new image with the `volumes` tag; not required. We did this to differentiate between images.
 
-     ```terminal
-     docker build -t feedback-node:volumes  .
-     ```
+   ```terminal
+   docker build -t feedback-node:volumes  .
+   ```
 
-  2. Specify the volume during the docker run
+2. Specify the volume during the docker run
 
-     ```terminal
-     docker run
-     -p 3000:80 (port mapping)
+   ```terminal
+   docker run
+   -p 3000:80 (port mapping)
 
-     -d --rm (detached and remove container when stopped)
+   -d --rm (detached and remove container when stopped)
 
-     --name feedback-app (name the container)
+   --name feedback-app (name the container)
 
-     -v feedback:/app/feedback (create a named volume called 'feedback' that maps to '/app/feedback')
+   -v feedback:/app/feedback (create a named volume called 'feedback' that maps to '/app/feedback')
 
-     feedback-node:volumes (use this image)
-     ```
+   feedback-node:volumes (use this image)
+   ```
 
-  3. In your Application submit data you want to save.
-  4. Run `docker stop feedback-app` container.
+3. In your Application submit data you want to save.
+4. Run `docker stop feedback-app` container.
 
-  5. View volumes using `docker volume ls`
-  6. Run `docker run` again to see the data persisted even after the container was stopped/removed.
+5. View volumes using `docker volume ls`
+6. Run `docker run` again to see the data persisted even after the container was stopped/removed.
 
-  In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
+In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
 
-3.
+### Read Only Volumes
 
-#### Bind Mounts managed by the user
+Looking back at our volume bind mount exercise, we did the following:
+
+1. Added a named volume called feedback.
+
+2. Added a Bind Mount to capture "real time changes"
+
+3. Added an anonymous volume to tell Docker there are certain parts in its internal file system which should NOT be overwritten from "outside."
+
+However, if we look closely at what the bind mount is actually doing we see that we need to be more explicit and NOT allow the Container to write into the `/app` folder. Only we, the developer, should be able to change them on our host system.
+
+We can enforce this by converting our bind mount into a read-only volume. By default, volumes are read-write but we can restrict this.
+
+```terminal
+docker run -d --rm -p 3000:80 --name feedback-app
+
+-v feedback:/app/feedback
+
+(^ Name Volume called feedback)
+
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app:ro"
+
+(^ Read Only Volume)
+
+-v /app/node_modules
+
+(^ Anonymous volume; anonymous because it has no name: declared)
+
+feedback-node:volumes
+```
+
+Now, we are specifically saying our Docker Container cannot write to `/app` or any of its subfolder. Only the host machine can.
+
+But, for this specific app example, we do want/need to allow the Container to write to the `/app/temp` and `/app/feedback` folders since this is expressed in `server.js`. So, we will use the same logic we used with our anonymous volume and specific a more specific path. The `/app/feedback` volume was already declared in our named volume so we just need to add 1 more additional volume.
+
+```terminal
+docker run -d --rm -p 3000:80 --name feedback-app
+
+-v feedback:/app/feedback
+
+(^ Name Volume called feedback)
+
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app:ro"
+
+(^ Read Only Volume)
+
+-v /app/temp
+
+(^ anonymous volume used to overwrite ro (read-only) permission for /app/temp)
+
+-v /app/node_modules
+
+(^ Anonymous volume; anonymous because it has no name: declared)
+
+feedback-node:volumes
+
+```
+
+NOTE: the bind mount overriding must occur in the terminal, not in our Dockerfile.
+
+## Introduction Bind Mounts
 
 - The main difference between Volumes and Bind Mounts is that for Bind Mounts, we the developer, define the folder/path on our host machine.
 
@@ -123,7 +178,7 @@ We will see that the `feedback/git.txt` page we submitted earlier does not exist
 
 - Leverage Anonymous Volumes to solve Binding Mount conflicts.
 
-#### Setting up Bind Mounts
+### Setting up Bind Mounts
 
 We add a Bind Mount with the same `-v` flag used for Volumes.
 
@@ -234,3 +289,18 @@ Docker will solve any volume/bind mounts clashes by going with the more specific
 We are still binding to `/app` but inside of our Container, `/app/node_modules` will NOT be overwritten. Our Container is essentially overriding the non-existent local `node_modules` folder that we are binding with the one it created via the `npm install` command.
 
 Now if we apply a change to our source code, we see the change applied immediately.
+
+## Managing Docker Volumes
+
+With our app up and running, we can used `docker volume --help` to take a look at all the commands we can use with this instruction.
+
+`docker volume ls` will show us our named volume and anonymous volumes. We won't see our bind mount because that is something WE manage, not Docker.
+
+```terminal
+docker volume ls
+
+DRIVER    VOLUME NAME
+local     9c127e9db967
+local     96cc6e8dd989
+local     feedback
+```
