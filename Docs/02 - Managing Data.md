@@ -68,43 +68,50 @@ We will see that the `feedback/git.txt` page we submitted earlier does not exist
    - We chose `/app/feedback` because this is where our permanent feedback files are stored.
    - And it's `/app` because that's the `WORKDIR` we defined; this is where our source code was copied into as specified in our Dockerfile.
    - Anonymous volumes are created and deleted with Containers
+   - Leveraged to solve conflicts that occur with volume/bind mount declaration.
+   - A good way to declare what data is managed inside of the Container vs what becomes present on the host file system.
 
 2. Named Volumes
 
-   1. Build a new image with the `volumes` tag; not required. We did this to differentiate between images.
+- NOT tied to a specific container.
+- Used to shared data between Containers.
 
-      ```terminal
-      docker build -t feedback-node:volumes  .
-      ```
+  1. Build a new image with the `volumes` tag; not required. We did this to differentiate between images.
 
-   2. Specify the volume during the docker run
+     ```terminal
+     docker build -t feedback-node:volumes  .
+     ```
 
-      ```terminal
-      docker run
-      -p 3000:80 (port mapping)
+  2. Specify the volume during the docker run
 
-      -d --rm (detached and remove container when stopped)
+     ```terminal
+     docker run
+     -p 3000:80 (port mapping)
 
-      --name feedback-app (name the container)
+     -d --rm (detached and remove container when stopped)
 
-      -v feedback:/app/feedback (create a named volume called 'feedback' that maps to '/app/feedback')
+     --name feedback-app (name the container)
 
-      feedback-node:volumes (use this image)
-      ```
+     -v feedback:/app/feedback (create a named volume called 'feedback' that maps to '/app/feedback')
 
-   3. Apply changes to your app/submit data you want to save.
-   4. Run `docker stop feedback-app` container.
+     feedback-node:volumes (use this image)
+     ```
 
-   5. View volumes using `docker volume ls`
-   6. Run `docker run` again to see the data persisted even after the container was stopped/removed.
+  3. In your Application submit data you want to save.
+  4. Run `docker stop feedback-app` container.
 
-   In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
+  5. View volumes using `docker volume ls`
+  6. Run `docker run` again to see the data persisted even after the container was stopped/removed.
+
+  In both instances, Docker will setup a folder/path on your host machine, exact location is unknown to the dev. However, this is managed via the `docker volumes` command.
 
 3.
 
 #### Bind Mounts managed by the user
 
 - The main difference between Volumes and Bind Mounts is that for Bind Mounts, we the developer, define the folder/path on our host machine.
+
+- NOT tied to a Container.
 
 - In terms of our NodeApp, we can place our source code in a Bind Mount and make our Container aware of this. That way, any source code changes can occur in "real-time" and not as a snap shot that happens during the build process.
 
@@ -116,7 +123,30 @@ We will see that the `feedback/git.txt` page we submitted earlier does not exist
 
 - Leverage Anonymous Volumes to solve Binding Mount conflicts.
 
-- `docker logs {container-name}`
+#### Setting up Bind Mounts
+
+We add a Bind Mount with the same `-v` flag used for Volumes.
+
+- We MUST use absolute paths.
+
+- We must also ensure Docker has access to the parent folder of this absolute path; this can be handled via the Docker App --> Resources --> File Sharing.
+
+```terminal
+
+docker run -d -p 3000:80 --name feedback-app
+
+-v feedback:/app/feedback
+
+(^ Name Volume called feedback)
+
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app"
+
+(^ Bind Mount)
+
+feedback-node:volumes
+```
+
+However, running this command resulted in a crash...why? We can inspect the Container logs using `docker logs {container-name}`. Which shows us,
 
 ```terminal
 docker logs feedback-app
@@ -145,8 +175,62 @@ Require stack:
 Node.js v21.5.0
 ```
 
-```terminal
-docker run -d -p 3000:80 --rm --name feedback-app -v feedback:/app/feedback -v "/Users/joseservin/AllThingsDocker/DataVolumes:/app" -v /app/node_modules feedback-node:volumes
+This failed because with the binding mount declaration, we are overwriting everything in our Container's `/app` with everything in our local folder (absolute path) which renders all of our `Dockerfile` instructions useless since they get overwritten by the bind mount.
+
+The local folder does NOT have the `node_modules` folder with the dependencies our App needs.
+
+```javascript
+const express = require("express");
 ```
+
+This `node_modules` folder DOES exist in our Container's file system; it is created via the `RUN npm install` command.
+
+So, how do we solve this?
+
+We need to tell Docker there are certain parts in its internal file system which should NOT be overwritten from "outside." (local) This is achieved by using an anonymous volume.
+
+```terminal
+docker run -d --rm -p 3000:80 --name feedback-app
+
+-v feedback:/app/feedback
+
+(^ Name Volume called feedback)
+
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app"
+
+(^ Bind Mount)
+
+-v /app/node_modules
+
+(^ Anonymous volume; anonymous because it has no name: declared)
+
+feedback-node:volumes
+```
+
+We could also declare this anonymous volume in our `Dockerfile`
+
+```Dockerfile
+FROM node
+
+WORKDIR /app
+
+COPY package.json /app
+
+RUN npm install
+
+COPY . /app
+
+EXPOSE 80
+
+VOLUME ["/app/node_modules"]
+
+CMD ["node", "server.js"]
+```
+
+How is this solving the issue?
+
+Docker will solve any volume/bind mounts clashes by going with the more specific path. So our `-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app"` is clashing with `-v /app/node_modules`, but `-v /app/node_modules` wins because it's more specific.
+
+We are still binding to `/app` but inside of our Container, `/app/node_modules` will NOT be overwritten. Our Container is essentially overriding the non-existent local `node_modules` folder that we are binding with the one it created via the `npm install` command.
 
 Now if we apply a change to our source code, we see the change applied immediately.
