@@ -409,3 +409,55 @@ feedback-node:envs
 ```
 
 ### Example Using Build Arguments (ARG)
+
+For this example, we are setting the `DEFAULT_PORT` ARG = 80 and building a new image which takes this ARG and uses it as the ENV value.
+
+```dockerfile
+FROM node
+
+ARG DEFAULT_PORT=80
+
+WORKDIR /app
+
+COPY package.json /app
+
+RUN npm install
+
+COPY . /app
+
+ENV PORT $DEFAULT_PORT
+
+EXPOSE $PORT
+
+CMD ["node", "server.js"]
+```
+
+Now, if we want to create a new image with the `dev` tag and port `8000` we can use the terminal command
+
+```terminal
+docker build -t feedback-node:dev --build-arg DEFAULT_PORT=8000 .
+```
+
+Here we also need to think about our build layers, so if we have an `ARG` that will change, which should change, we can add efficiency to our build by placing the `ARG` declaration in a spot that makes sense.
+
+```dockerfile
+FROM node
+
+WORKDIR /app
+
+COPY package.json /app
+
+RUN npm install
+
+COPY . /app
+
+ARG DEFAULT_PORT=80
+
+ENV PORT $DEFAULT_PORT
+
+EXPOSE $PORT
+
+CMD ["node", "server.js"]
+```
+
+So now, `npn install` won't rerun due to an new `ARG` declaration.
