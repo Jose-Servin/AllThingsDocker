@@ -294,7 +294,7 @@ Now if we apply a change to our source code, we see the change applied immediate
 
 With our app up and running, we can used `docker volume --help` to take a look at all the commands we can use with this instruction.
 
-`docker volume ls` will show us our named volume and anonymous volumes. We won't see our bind mount because that is something WE manage, not Docker.
+`docker volume ls` will show us our named volume and anonymous volumes. We won't see our bind mount because that is something WE manage, not Docker. Also note, here we see our anonymous volumes because the container is currently running. If we stop the container and then `docker volume ls` we'd only see the named volume since the anonymous volumes are removed when the container is removed.
 
 ```terminal
 docker volume ls
@@ -304,3 +304,108 @@ local     9c127e9db967
 local     96cc6e8dd989
 local     feedback
 ```
+
+`docker volumen inspect {volume-name}` provides various data points about our volume.
+
+```terminal
+docker volume inspect feedback
+[
+    {
+        "CreatedAt": "2023-12-31T21:27:18Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/feedback/_data",
+        "Name": "feedback",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+`docker volume rm {volume-name}` will remove a volume and error if the volume is currently being used. In our example, if we remove the `feedback` volume, we will loose all `/app/feedback/.txt` that was submitted via our application.
+
+`docker volume prune` will remove all unused volumes.
+
+## COPY vs Bind Mounts
+
+The question here is why do we specify `COPY . . ` in our Dockerfile if we overwrite these instructions with our bind mount in order to see real time changes.
+
+The answer has to do with where in the dev stage we are at. We are using a bind mount because we are still developing. Once our application is ready to be deployed we won't be using a bind mount. In production, we want that snapshot to exist since changes to our source code SHOULD not happen in the production dev stage.
+
+## Dockerignore
+
+We can restrict what gets copied via the `COPY` command in our Dockerfile by using a `.dockerignore` file.
+
+For example, here we are ignoring the `node_modules` folder that might exist locally to again, insure we are not overriding the Container's `node_module` folder but this time, we are doing it to avoid using outdated node modules.
+
+```.dockerignore
+node_modules
+```
+
+## Working with Environment variables - ENV & ARG
+
+Docker supports build-time ARGuments and runtime ENViornment variables. These 2 options let us dynamically build an image or run a container.
+
+ARG
+
+- Available inside of Dockerfile but NOT accessible in CMD or application code.
+
+ENV
+
+- Available inside of Dockerfile and application code.
+
+### Example using ENV
+
+Currently, the port we are listening on is `app.listen(80);`, however we want to make this dynamic. Node specifically allows us to access environment variables by using `process.env.{variable}`, and with Docker we set this `{variable}`. So our hard coded port becomes `app.listen(process.env.PORT);`.
+
+```dockerfile
+COPY . /app
+
+ENV PORT 80
+
+EXPOSE $PORT
+
+CMD ["node", "server.js"]
+```
+
+We can now build a new image and run using
+
+```terminal
+docker run -d -p 3000:80 --rm --name feedback-app -v feedback:/app/feedback -v "/Users/joseservin/AllThingsDocker/DataVolumes:/app:ro" -v /app/temp -v /app/node_modules feedback-node:env
+```
+
+We can also, change the PORT variable value in the terminal and not have to rebuild a new image to capture this PORT change.
+
+- `--env PORT=8000`
+
+- `--e PORT=8000`
+
+```terminal
+docker run -d --rm -p 3000:8000 --env PORT=8000
+--name feedback-app
+-v feedback:/app/feedback
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app:ro"
+-v /app/temp
+-v /app/node_modules
+feedback-node:env
+```
+
+### .env file example
+
+We can organize our environment variables by using a `.env` file and pointing to it when we run our Docker commands via the `--env-file` flag.
+
+```.env
+PORT=8000
+```
+
+```terminal
+docker run -d --rm -p 3000:8000 --env-file ./.env
+--name feedback-app
+-v feedback:/app/feedback
+-v "/Users/joseservin/AllThingsDocker/DataVolumes:/app:ro"
+-v /app/temp
+-v /app/node_modules
+feedback-node:envs
+```
+
+### Example Using Build Arguments (ARG)
