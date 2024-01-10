@@ -106,9 +106,68 @@ This shows us that out of the box, containers CAN communicate with the World Wid
 
 ## Container to Local Host Machine Communication
 
-Scenario 2: Our Node Application would also need to communication with a local Postgres DB that is running on the host machine. For example, my local Postgres DB contains the super-store data that our app would like to read.
+Scenario 2: Our Node Application would also need to communication with a local Postgres DB that is running on the host machine. For example, my local Postgres DB contains the super-store data that our app would like to read. In the Node app implementation, the DB is MongoDB.
 
-In the Node app implementation, the DB is MongoDB.
+For this example, we will need to have MongoDB locally but since I do not want to install this DB, I'll just walk through the steps implemented to get the `localhost` DB connection.
+
+For this type of communication, container to local host, we just need to implement a code change.
+
+Current source code:
+
+```javascript
+mongoose.connect(
+  "mongodb://localhost:27017/swfavorites",
+  { useNewUrlParser: true },
+  (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      app.listen(3000);
+    }
+  }
+);
+```
+
+Change needed:
+
+```javascript
+mongoose.connect(
+  "mongodb://host.docker.internal:27017/swfavorites",
+  { useNewUrlParser: true },
+  (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      app.listen(3000);
+    }
+  }
+);
+```
+
+`host.docker.internal` is a declaration understood by Docker which translated to the IP address of your host machine.
+
+Now, we can rebuild the image and proceed as usual.
+
+```terminal
+docker build -t favorites-node .
+```
+
+```terminal
+docker run -d --rm -p 3000:3000 --name favorites favorites-node
+```
+
+We can check that this MongoDB is live by adding a favorite and checking with postman that the `GET` `localhost:3000/favorites` call returns data. (done through the Postman UI)
+
+`POST` `localhost:3000/favorites` (done through the Postman UI)
+
+```JSON
+{
+
+  "name" : "A New Hope",
+  "type" : "movie",
+  "url" : "some-url.com/dev/v1/films"
+}
+```
 
 ## Container to Container Communication
 
