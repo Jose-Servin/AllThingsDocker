@@ -171,4 +171,120 @@ We can check that this MongoDB is live by adding a favorite and checking with po
 
 ## Container to Container Communication
 
-Scenario 3: Our Node app container would like to communicate with another container we have set up that contains a dockerized SQL Database.
+Scenario 3: Our Node app container would like to communicate with another container we have set up that contains a dockerized SQL Database (MongoDB).
+
+1. Run a container based on the `mongo` image.
+
+   ```terminal
+   docker run -d --name mongodb mongo
+   ```
+
+   ```terminal
+   docker ps
+
+   CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS       NAMES
+   18eb4bece677   mongo     "docker-entrypoint.s…"   14 seconds ago   Up 13 seconds   27017/tcp   mongodb
+   ```
+
+2. Inspect our mongo container for it's IP address.
+
+   - `docker container inspect mongodb`
+
+   We will use the IP address from this container
+
+   ```terminal
+    "GlobalIPv6PrefixLen": 0,
+    "IPAddress": "172.17.0.2",
+    "IPPrefixLen": 16,
+   ```
+
+3. Connect our mongo db container to our `app.js`
+
+   ```javascript
+   mongoose.connect(
+     "mongodb://172.17.0.2:27017/swfavorites",
+     { useNewUrlParser: true },
+     (err) => {
+       if (err) {
+         console.log(err);
+       } else {
+         app.listen(3000);
+       }
+     }
+   );
+   ```
+
+4. Rebuild image and run container
+
+   ```terminal
+   docker build -t favorites-node .
+   ```
+
+   ```terminal
+   docker run -d --rm -p 3000:3000 --name favorites favorites-node
+   ```
+
+5. Confirm `GET` and `POST` using Postman.
+
+The limitations with this approach are:
+
+1. Hard coded mongo db container IP
+2. We will need to update the source code of our `app.js` and re-build a new image each time our mongo db container IP changes.
+
+## Introducing Docker Networks
+
+The main idea here is defining a network that encapsulates our containers via the `docker run --network {network-name}`.
+
+Within a Docker network, all containers can communicate with each other and IPs are automatically resolved.
+
+The user is responsible for explicitly creating networks.
+
+### How to create a network
+
+```terminal
+docker network create favorites-net
+```
+
+Verify network was created
+
+```
+docker network ls
+NETWORK ID     NAME            DRIVER    SCOPE
+bb657a01a0a1   bridge          bridge    local
+8ac1dd1a48ad   favorites-net   bridge    local
+0fe6520cbe19   host            host      local
+af3eb2a5da5c   none            null      local
+```
+
+Run a container using this network.
+
+```terminal
+docker run -d --name mongodb --network favorites-net mongo
+```
+
+Now, we can reference this container's network by calling it by name in our source code. We apply this change and build a new image.
+
+```javascript
+mongoose.connect(
+  "mongodb://mongodb:27017/swfavorites",
+  { useNewUrlParser: true },
+  (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      app.listen(3000);
+    }
+  }
+);
+```
+
+After the image is created, we can run our container and reference our network.
+
+```terminal
+docker run -d --rm -p 3000:3000
+--name favorites
+--network favorites-net
+favorites-node
+```
+
+Confirm `GET` and `POST` using Postman.
