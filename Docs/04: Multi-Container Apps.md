@@ -85,8 +85,4 @@ We first stop our `goals-backend` container and re-run our `run` command and dec
 docker run --name goals-backend --rm -d -p 80:80  goals-node
 ```
 
-### Local Frontend Install
-
-1. `cd frontend`
-2. run `npm install`
-3.
+## Dockerizing the Frontend
