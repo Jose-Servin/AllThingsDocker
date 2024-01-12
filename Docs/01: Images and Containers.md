@@ -6,7 +6,7 @@ Containers: Running unit of software.
 
 Images: Contains code / required tools needed at runtime.
 
-For example, in NodeApp the image is the NodeApp Code + NodeJS Environment and the container is each instance of this running application. It is important to remember the Docker environment is isolated from the local environment.
+For example, in `NodeApp` the image is the NodeApp Code + NodeJS Environment and the container is each instance of this running application. It is important to remember the Docker environment is isolated from the local environment.
 
 Use `docker ps -a` to view all created containers.
 
