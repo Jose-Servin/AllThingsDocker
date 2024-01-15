@@ -113,3 +113,70 @@ Note, during container building, we encountered some issues with our Node versio
 Debugging can be found [here](https://stackoverflow.com/questions/69692842/error-message-error0308010cdigital-envelope-routinesunsupported)
 
 But now, we can successfully see our React frontend SPA page if we visit `localhost:3000`.
+
+## Adding Docker Networks
+
+We can first start by seeing what networks have been established both by Docker and the user using `docker network ls`
+
+```terminal
+docker network ls
+
+NETWORK ID     NAME            DRIVER    SCOPE
+56df2fc1d8ba   bridge          bridge    local
+8ac1dd1a48ad   favorites-net   bridge    local
+0fe6520cbe19   host            host      local
+af3eb2a5da5c   none            null      local
+```
+
+Next, we create a network that we'll leverage from this SPA application.
+
+```terminal
+docker network create goals-net
+```
+
+Now we can start up each container again and not have to worry about publishing ports because they will all be in the same network!
+
+First, we start our database.
+
+```terminal
+docker run --name mongodb --rm -d --network goals-net mongo
+```
+
+Next, we make some source code changes to our backend code since our mongodb is now in a container with it's defined network. Before, this was `host.docker.internal`.
+
+```javascript
+mongoose.connect(
+  "mongodb://mongodb:27017/course-goals",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  },
+  (err) => {
+    if (err) {
+      console.error("FAILED TO CONNECT TO MONGODB");
+      console.error(err);
+    } else {
+      console.log("CONNECTED TO MONGODB");
+      app.listen(80);
+    }
+  }
+);
+```
+
+Now we rebuild the image and start up a new backend container using the network we established.
+
+```
+docker build -t goals-node .
+```
+
+Here we make sure to publish port 80 for our frontend code, this is how the frontend will communicate with the backend services.
+
+```terminal
+docker run --name goals-backend --rm -d -p 80:80 --network goals-net goals-node
+```
+
+Lastly, for our front-end, we will keep the `localhost` referenced because we have to remember that this code runs on the browser. Our browser is able to distinguish what localhost we are referring to. This also means our frontend does NOT have to be in the same docker network so we simply build a new container.
+
+```terminal
+docker run --name goals-frontend --rm -d -p 3000:3000 -it goals-react
+```
