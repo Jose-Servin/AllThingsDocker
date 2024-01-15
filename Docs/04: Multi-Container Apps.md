@@ -86,3 +86,30 @@ docker run --name goals-backend --rm -d -p 80:80  goals-node
 ```
 
 ## Dockerizing the Frontend
+
+We first create a Dockerfile for our `/frontend` code and build a new image.
+
+```terminal
+docker build -t goals-react .
+```
+
+Next, we set up a new container
+
+```terminal
+docker run --name goals-frontend --rm -d -p 3000:3000 -it goals-react
+```
+
+So now, we have our 3 app components in separate containers
+
+```terminal
+CONTAINER ID   IMAGE         COMMAND                  CREATED              STATUS              PORTS                      NAMES
+5e649c07fea7   goals-react   "docker-entrypoint.s…"   2 seconds ago        Up 2 seconds        0.0.0.0:3000->3000/tcp     goals-frontend
+dbec584e8988   goals-node    "docker-entrypoint.s…"   52 seconds ago       Up 52 seconds       0.0.0.0:80->80/tcp         goals-backend
+0fb06364a9b8   mongo         "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:27017->27017/tcp   mongodb
+```
+
+Note, during container building, we encountered some issues with our Node version, we had to specify Node:16 in order to solve all package issues.
+
+Debugging can be found [here](https://stackoverflow.com/questions/69692842/error-message-error0308010cdigital-envelope-routinesunsupported)
+
+But now, we can successfully see our React frontend SPA page if we visit `localhost:3000`.
