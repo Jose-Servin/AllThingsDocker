@@ -240,17 +240,17 @@ Here, the requirements were to capture the log files and have live code changes 
 docker run --name goals-backend \
   --rm -d -p 80:80 --network goals-net \
   -v logs:/app/logs \
-  -v "/Users/joseservin/AllThingsDocker/04: MultiContainerApp/backend:/app" \
+  -v "/Users/joseservin/AllThingsDocker/04_MultiContainerApp/backend:/app" \
   -v /app/node_modules \
   goals-node
 ```
 
 `-v logs:/app/logs` This named volume is used to capture logs.
 
-`-v "/Users/joseservin/AllThingsDocker/04: MultiContainerApp/backend:/app"` this bind mount is used to capture live code changes.
+`-v "/Users/joseservin/AllThingsDocker/04_MultiContainerApp/backend:/app"` this bind mount is used to capture live code changes.
 
 `-v :/app/node_modules` this anonymous volume is used to prevent our local host code from overriding the container's `node_modules` folder.
 
-Here, we run into another node related issue where the "live code" changes we thought we set up are not really being captured since our command `node app.js` is essentially taking a snapshot of our code and running our backend application.
+However, we run into another node related issue where the "live code" changes we thought we set up are not really being captured since our command `node app.js` is essentially taking a snapshot of our code and running our backend application.
 
 What we want, is for our node server to restart every time our code changes to reflect the change. We do this by adding a dependency which will do this automatically for us.
