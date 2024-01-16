@@ -165,7 +165,7 @@ mongoose.connect(
 
 Now we rebuild the image and start up a new backend container using the network we established.
 
-```
+```terminal
 docker build -t goals-node .
 ```
 
@@ -179,4 +179,55 @@ Lastly, for our front-end, we will keep the `localhost` referenced because we ha
 
 ```terminal
 docker run --name goals-frontend --rm -d -p 3000:3000 -it goals-react
+```
+
+## Adding Data Volumes to MongoDB
+
+Currently, if we submit a goal in our SPA the goal on persists as long as the mongodb container is up and running. We loose our input data if we stop the container and start a new one with the same image and in the same network.
+
+```terminal
+docker run --name mongodb --rm -d --network goals-net -v data:/data/db mongo
+```
+
+We found where the mongo db docker image stores it's data [here](https://hub.docker.com/_/mongo)
+
+## Securing our MongoDB
+
+Next, we'll declare some environment variables to add a layer of security to our mongodb.
+
+```terminal
+docker run --name mongodb --rm -d \
+  --network goals-net -v data:/data/db \
+  -e MONGO_INITDB_ROOT_USERNAME=servin \
+  -e MONGO_INITDB_ROOT_PASSWORD=secret \
+  mongo
+```
+
+This will cause our Node code to fail resulting in a frontend error message from react because the backend is trying to connect to a now "secure" database without passing credentials.
+
+This means, we now have to pass these credentials from our backend. We do this in our `app.js` backend file.
+
+```javascript
+mongoose.connect(
+  "mongodb://servin:secret@mongodb:27017/course-goals?authSource=admin",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  },
+  (err) => {
+    if (err) {
+      console.error("FAILED TO CONNECT TO MONGODB");
+      console.error(err);
+    } else {
+      console.log("CONNECTED TO MONGODB");
+      app.listen(80);
+    }
+  }
+);
+```
+
+We encountered an issue here with out volume mounts. We had to stop all containers, `docker volume rm data` and then restart the containers.
+
+```text
+The problem could be the volume and the fact that you created another user with different credentials before you changed them. Because of the volume, your database is still there and hence your old root user is still set up - i.e. your old credentials apply.
 ```
