@@ -231,3 +231,26 @@ We encountered an issue here with out volume mounts. We had to stop all containe
 ```text
 The problem could be the volume and the fact that you created another user with different credentials before you changed them. Because of the volume, your database is still there and hence your old root user is still set up - i.e. your old credentials apply.
 ```
+
+## Adding Data Volumes to our backend NodeJS
+
+Here, the requirements were to capture the log files and have live code changes reflected.
+
+```terminal
+docker run --name goals-backend \
+  --rm -d -p 80:80 --network goals-net \
+  -v logs:/app/logs \
+  -v "/Users/joseservin/AllThingsDocker/04: MultiContainerApp/backend:/app" \
+  -v /app/node_modules \
+  goals-node
+```
+
+`-v logs:/app/logs` This named volume is used to capture logs.
+
+`-v "/Users/joseservin/AllThingsDocker/04: MultiContainerApp/backend:/app"` this bind mount is used to capture live code changes.
+
+`-v :/app/node_modules` this anonymous volume is used to prevent our local host code from overriding the container's `node_modules` folder.
+
+Here, we run into another node related issue where the "live code" changes we thought we set up are not really being captured since our command `node app.js` is essentially taking a snapshot of our code and running our backend application.
+
+What we want, is for our node server to restart every time our code changes to reflect the change. We do this by adding a dependency which will do this automatically for us.
