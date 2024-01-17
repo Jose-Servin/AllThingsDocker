@@ -336,3 +336,13 @@ docker run --name goals-backend --rm -d -p 80:80 \
 ```
 
 Again, we can check the logs and verify the connection was successful.
+
+## Adding Bind Mounts to our Frontend React code
+
+Here, the requirement was to capture live source code changes. To do this, we will set up a Bind Mount.
+
+```terminal
+docker run --name goals-frontend --rm -d -p 3000:3000 -it \
+-v "/Users/joseservin/AllThingsDocker/04_MultiContainerApp/frontend/src:/app/src" \
+goals-react
+```
