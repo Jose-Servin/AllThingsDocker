@@ -277,7 +277,7 @@ CMD ["npm", "start"]
 
 Now we can rebuild this image, start a new container for out backend and verify nodemon is picking up changes by viewing the logs.
 
-```
+```terminal
 docker logs goals-backend
 
 > backend@1.0.0 start
@@ -293,3 +293,46 @@ CONNECTED TO MONGODB
 [nodemon] starting `node app.js`
 CONNECTED TO MONGODB!
 ```
+
+## Adding env variables to the backend
+
+First we define in our dockerfile what environment variables are to be expected with their default values.
+
+```docker
+ENV MONGODB_USERNAME=root
+ENV MONGODB_PASSWORD=secret
+```
+
+We then apply these environment variables in our source code
+
+```javascript
+mongoose.connect(
+  `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@mongodb:27017/course-goals?authSource=admin`,
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  },
+  (err) => {
+    if (err) {
+      console.error("FAILED TO CONNECT TO MONGODB");
+      console.error(err);
+    } else {
+      console.log("CONNECTED TO MONGODB!");
+      app.listen(80);
+    }
+  }
+);
+```
+
+And lastly, we pass any environment variables at run time.
+
+```terminal
+docker run --name goals-backend --rm -d -p 80:80 \
+  --network goals-net -v logs:/app/logs \
+  -v "/Users/joseservin/AllThingsDocker/04_MultiContainerApp/backend:/app" \
+  -v /app/node_modules \
+  -e MONGODB_USERNAME=servin \
+  goals-node
+```
+
+Again, we can check the logs and verify the connection was successful.
