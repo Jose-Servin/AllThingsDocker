@@ -251,6 +251,45 @@ docker run --name goals-backend \
 
 `-v :/app/node_modules` this anonymous volume is used to prevent our local host code from overriding the container's `node_modules` folder.
 
-However, we run into another node related issue where the "live code" changes we thought we set up are not really being captured since our command `node app.js` is essentially taking a snapshot of our code and running our backend application.
+However, we run into another node related issue where the "live code" changes we thought we set up are not really being captured because our command `node app.js` is essentially taking a snapshot of our code and running our backend application.
 
 What we want, is for our node server to restart every time our code changes to reflect the change. We do this by adding a dependency which will do this automatically for us.
+
+`backend/package.json`
+
+```json
+ "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  ...
+"devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}
+```
+
+We then change our Dockerfile to start this script that utilizes nodemon.
+
+```Dockerfile
+CMD ["npm", "start"]
+```
+
+Now we can rebuild this image, start a new container for out backend and verify nodemon is picking up changes by viewing the logs.
+
+```
+docker logs goals-backend
+
+> backend@1.0.0 start
+> nodemon app.js
+
+[nodemon] 2.0.22
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,json
+[nodemon] starting `node app.js`
+CONNECTED TO MONGODB
+[nodemon] restarting due to changes...
+[nodemon] starting `node app.js`
+CONNECTED TO MONGODB!
+```
