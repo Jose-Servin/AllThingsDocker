@@ -6,7 +6,29 @@ services:
       - data:/data/db
     env_file:
       - ./env/mongo.env
-  # backend:
-  # frontend:
+  backend:
+    build: ./backend
+    ports:
+      - "80:80"
+    volumes:
+      - logs:/app/logs # named volume used to capture logs
+      - ./backend:/app # Bind mount without absolute path
+      - /app/node_modules # anonymous volume used to prevent node_modules override
+    env_file:
+      - ./env/backend.env
+    depends_on:
+      - mongodb
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src # Bind mount for live code changes
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
+
 volumes:
   data:
+  logs:
