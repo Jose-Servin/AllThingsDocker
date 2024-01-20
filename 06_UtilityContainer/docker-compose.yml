@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  npm:
+    build: ./ # Build the Dockerfile
+    stdin_open: true # replacing the -it flag
+    tty: true
+    volumes:
+      - ./:/app
