@@ -24,7 +24,7 @@ General rules to follow when moving from development to Production:
 - We use COPY to copy a code snapshot into the image.
 - This ensures the image can run without any extra configuration or code.
 
-## Deployment Example: Basic Node App
+## Deployment Example: Manual Deployment to AWS
 
 We will first start with a very simple standalone NodeJS App. The deployment approach used here will be to "Install Docker on a remote host (e.g via SSH), push and pull image, run container based on image on remote host."
 
@@ -201,3 +201,21 @@ docker run -d --rm -p 80:80 joseservin/simple-node-app
 And now if we visit our IPv4 address, we will see our code changes.
 
 Finally, to end this deployment setup, we stop the docker container running on our EC2, exit the connection and stop or terminate this EC2 instance on AWS.
+
+### Disadvantages to this approach
+
+The approach detailed about is very "do-it-yourself" heavy, we the user had to configure our EC2, connect to it, install docker etc.
+
+In this approach, we fully own the remote machine and are responsible for it and it's security. We also have to manage the network, firewall and other updating aspects. This means, there are lots of opportunities to mess up and running the `ssh` command can become cumbersome to new devs.
+
+In summary, the approach used above is a full control approach where the developer must know AWS and how to configure everything from beginning to end.
+
+## Deployment Example: Managed Services
+
+In this approach, we will move to a managed remote machine (AWS ECS) to run our container service. With this approach, creation, management and updating of our remote machine is handled automatically and monitoring and scaling is simplified. This is great if we are just concerned with deploying our app/container and can give up some set up control.
+
+For this example, we will be setting up an AWS ECS Cluster. Essentially, this cluster will replace our Docker commands so the configuration part is how we define what command this cluster should run.
+
+Stopping.....Udemy video is outdated.
+
+Vide Instructions can be found [here](https://www.youtube.com/watch?v=YDNSItBN15w&t=1037s&ab_channel=BeABetterDev)
